@@ -9,6 +9,7 @@ import NotFound from "@/pages/not-found";
 import Auth from "@/pages/Auth";
 import Home from "@/pages/Home";
 import Gallery from "@/pages/Gallery";
+import { GuestGallery } from "@/pages/GuestGallery";
 
 function AppRoutes() {
   const { user, loading } = useAuth();
@@ -36,6 +37,9 @@ function AppRoutes() {
       </Route>
       <Route path="/gallery/:galleryId">
         {({ galleryId }) => <Gallery galleryId={galleryId} />}
+      </Route>
+      <Route path="/guest/:galleryId">
+        {({ galleryId }) => <GuestGallery />}
       </Route>
       <Route path="/auth">
         <Auth />

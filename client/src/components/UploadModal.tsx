@@ -96,7 +96,7 @@ export const UploadModal: React.FC<UploadModalProps> = ({ open, onClose }) => {
         
         await createMedia({
           galleryId: gallery.id,
-          visitorId: visitor?.id || 'owner',
+          authorId: user?.id?.toString() || 'owner',
           url,
           type: uploadType,
           caption: caption.trim() || undefined,

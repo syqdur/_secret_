@@ -73,10 +73,11 @@ export const StoryUploadModal: React.FC<StoryUploadModalProps> = ({ open, onClos
         const url = await uploadFile(selectedFile, gallery.id, 'story');
         await createMedia({
           galleryId: gallery.id,
-          visitorId: visitor?.id || 'owner',
+          authorId: user?.id?.toString() || 'owner',
           url,
           type: 'story',
           caption: caption.trim() || undefined,
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
         });
       }
 

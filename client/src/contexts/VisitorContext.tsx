@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { Visitor } from '@shared/schema';
-import { createVisitor, findVisitorByDevice, updateVisitorActivity } from '@/lib/storage';
+import { registerVisitor, findVisitorByDevice, updateVisitorActivity } from '@/lib/api-storage';
 
 interface VisitorContextType {
   visitor: Visitor | null;
@@ -58,12 +58,13 @@ export const VisitorProvider: React.FC<VisitorProviderProps> = ({ children, gall
       localStorage.setItem(`weddingpix_device_${galleryId}`, deviceId);
 
       try {
-        const existingVisitor = await findVisitorByDevice(galleryId, deviceId);
+        const fingerprint = generateDeviceFingerprint();
+        const existingVisitor = await findVisitorByDevice(galleryId, deviceId, fingerprint);
         if (existingVisitor) {
           setVisitor(existingVisitor);
           setIsFirstTime(false);
           // Update last active
-          await updateVisitorActivity(galleryId, existingVisitor.id);
+          await updateVisitorActivity(existingVisitor.id);
         } else {
           setIsFirstTime(true);
         }
@@ -76,39 +77,21 @@ export const VisitorProvider: React.FC<VisitorProviderProps> = ({ children, gall
     initializeVisitor();
   }, [galleryId]);
 
-  const registerVisitor = async (galleryId: string, name: string) => {
+  const registerVisitorFunc = async (galleryId: string, name: string) => {
     try {
       const deviceId = localStorage.getItem(`weddingpix_device_${galleryId}`) || uuidv4();
       const fingerprint = generateDeviceFingerprint();
       
       console.log('Registering visitor:', { galleryId, name, deviceId });
       
-      const visitorId = await createVisitor({
-        galleryId,
-        name,
-        deviceId,
-        fingerprint,
-      });
-
-      const newVisitor: Visitor = {
-        id: visitorId,
-        galleryId,
-        name,
-        deviceId,
-        fingerprint,
-        createdAt: new Date(),
-        lastActive: new Date(),
-      };
+      const newVisitor = await registerVisitor(galleryId, name, deviceId, fingerprint);
       
       console.log('Visitor registered successfully:', newVisitor);
 
       setVisitor(newVisitor);
       setIsFirstTime(false);
       
-      localStorage.setItem(`weddingpix_visitor_${galleryId}`, JSON.stringify(newVisitor));
-      
-      // Force a small delay to ensure state updates propagate
-      await new Promise(resolve => setTimeout(resolve, 100));
+      localStorage.setItem(`weddingpix_device_${galleryId}`, deviceId);
     } catch (error) {
       console.error('Error registering visitor:', error);
       throw error;
@@ -116,9 +99,9 @@ export const VisitorProvider: React.FC<VisitorProviderProps> = ({ children, gall
   };
 
   const updateActivity = async () => {
-    if (visitor && galleryId) {
+    if (visitor) {
       try {
-        await updateVisitorActivity(galleryId, visitor.id);
+        await updateVisitorActivity(visitor.id);
       } catch (error) {
         console.error('Error updating visitor activity:', error);
       }
@@ -128,7 +111,7 @@ export const VisitorProvider: React.FC<VisitorProviderProps> = ({ children, gall
   const value = {
     visitor,
     isFirstTime,
-    registerVisitor,
+    registerVisitor: registerVisitorFunc,
     updateActivity,
   };
 

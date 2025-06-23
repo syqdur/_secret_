@@ -36,7 +36,10 @@ import {
   Check,
   X,
   Camera,
-  Save
+  Save,
+  Share,
+  Copy,
+  ExternalLink
 } from 'lucide-react';
 
 interface AdminPanelProps {
@@ -256,6 +259,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ open, onClose }) => {
                 Guests
               </Button>
               <Button
+                variant={activeTab === 'share' ? 'default' : 'ghost'}
+                className="w-full justify-start"
+                onClick={() => setActiveTab('share')}
+              >
+                <Share className="w-4 h-4 mr-3" />
+                Share Gallery
+              </Button>
+              <Button
                 variant={activeTab === 'settings' ? 'default' : 'ghost'}
                 className="w-full justify-start"
                 onClick={() => setActiveTab('settings')}
@@ -464,6 +475,92 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ open, onClose }) => {
                         </CardContent>
                       </Card>
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'share' && (
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-800 mb-6">Share Gallery</h2>
+                  <div className="space-y-6">
+                    <Card>
+                      <CardContent className="p-6">
+                        <div className="flex items-center space-x-4 mb-4">
+                          <div className="w-12 h-12 bg-gradient-to-r from-pink-500 to-purple-600 rounded-full flex items-center justify-center">
+                            <Share className="w-6 h-6 text-white" />
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-semibold text-gray-800">Guest Gallery Link</h3>
+                            <p className="text-sm text-gray-600">Share this link with your guests to allow them to view and contribute to the gallery</p>
+                          </div>
+                        </div>
+                        
+                        <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                          <div className="flex items-center space-x-3">
+                            <Input
+                              value={`${window.location.origin}/guest/${gallery.id}`}
+                              readOnly
+                              className="flex-1 bg-white border-gray-300"
+                            />
+                            <Button
+                              onClick={() => {
+                                navigator.clipboard.writeText(`${window.location.origin}/guest/${gallery.id}`);
+                                alert('Guest link copied to clipboard!');
+                              }}
+                              className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700"
+                            >
+                              <Copy className="w-4 h-4 mr-2" />
+                              Copy Link
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center space-x-3 mb-4">
+                          <Button
+                            onClick={() => window.open(`/guest/${gallery.id}`, '_blank')}
+                            variant="outline"
+                            className="flex-1"
+                          >
+                            <ExternalLink className="w-4 h-4 mr-2" />
+                            Preview Guest View
+                          </Button>
+                        </div>
+
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                          <h4 className="font-medium text-blue-800 mb-2">What guests can do:</h4>
+                          <ul className="text-sm text-blue-700 space-y-1">
+                            <li>• View all photos and videos in the gallery</li>
+                            <li>• Upload their own photos and videos</li>
+                            <li>• Add 24-hour stories that disappear automatically</li>
+                            <li>• Like and comment on posts</li>
+                            <li>• Only edit or delete their own content</li>
+                          </ul>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardContent className="p-6">
+                        <div className="flex items-center space-x-4 mb-4">
+                          <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
+                            <Users className="w-6 h-6 text-gray-600" />
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-semibold text-gray-800">Guest Registration</h3>
+                            <p className="text-sm text-gray-600">Guests will be asked to enter their name when first visiting</p>
+                          </div>
+                        </div>
+                        
+                        <div className="bg-gray-50 rounded-lg p-4">
+                          <p className="text-sm text-gray-600 mb-2">
+                            <strong>No accounts required!</strong> Guests are identified by their device and chosen name.
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            Examples: "Julia H. from Table 4", "Mike - Best Man", "Sarah (Sister)"
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
                   </div>
                 </div>
               )}
