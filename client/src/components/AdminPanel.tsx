@@ -17,6 +17,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { uploadFile } from '@/lib/storage';
 import { 
   Crown, 
   BarChart3, 
@@ -29,7 +34,9 @@ import {
   EyeOff,
   Trash2,
   Check,
-  X
+  X,
+  Camera,
+  Save
 } from 'lucide-react';
 
 interface AdminPanelProps {
@@ -53,9 +60,23 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ open, onClose }) => {
     comments: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [editMode, setEditMode] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [galleryForm, setGalleryForm] = useState({
+    name: '',
+    bio: '',
+    profileImage: ''
+  });
 
   useEffect(() => {
     if (!gallery || !open) return;
+
+    // Initialize form with gallery data
+    setGalleryForm({
+      name: gallery.name || '',
+      bio: gallery.bio || '',
+      profileImage: gallery.profileImage || ''
+    });
 
     const loadAdminData = async () => {
       try {
@@ -145,6 +166,42 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ open, onClose }) => {
     }
   };
 
+  const handleProfileImageUpload = async (file: File) => {
+    if (!gallery) return;
+    
+    try {
+      setUploading(true);
+      const imageUrl = await uploadFile(file, gallery.id, 'profile');
+      setGalleryForm(prev => ({ ...prev, profileImage: imageUrl }));
+    } catch (error) {
+      console.error('Error uploading profile image:', error);
+      alert('Failed to upload image. Please try again.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleSaveGalleryDetails = async () => {
+    if (!gallery) return;
+    
+    try {
+      setLoading(true);
+      await updateGallery(gallery.id, {
+        name: galleryForm.name,
+        bio: galleryForm.bio,
+        profileImage: galleryForm.profileImage
+      });
+      setEditMode(false);
+      alert('Gallery details updated successfully!');
+      window.location.reload(); // Refresh to show changes
+    } catch (error) {
+      console.error('Error updating gallery:', error);
+      alert('Failed to update gallery details. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (!gallery || !user || gallery.ownerEmail !== user.email) {
     return null;
   }
@@ -197,6 +254,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ open, onClose }) => {
               >
                 <Users className="w-4 h-4 mr-3" />
                 Guests
+              </Button>
+              <Button
+                variant={activeTab === 'settings' ? 'default' : 'ghost'}
+                className="w-full justify-start"
+                onClick={() => setActiveTab('settings')}
+              >
+                <Settings className="w-4 h-4 mr-3" />
+                Gallery Settings
               </Button>
             </nav>
             
@@ -400,6 +465,127 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ open, onClose }) => {
                       </Card>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {activeTab === 'settings' && (
+                <div>
+                  <div className="flex items-center justify-between mb-8">
+                    <h1 className="text-3xl font-bold text-gray-800">Gallery Settings</h1>
+                    {!editMode ? (
+                      <Button onClick={() => setEditMode(true)} className="bg-gradient-to-r from-pink-500 to-purple-600">
+                        Edit Details
+                      </Button>
+                    ) : (
+                      <div className="flex space-x-3">
+                        <Button onClick={() => setEditMode(false)} variant="outline">
+                          Cancel
+                        </Button>
+                        <Button onClick={handleSaveGalleryDetails} disabled={loading} className="bg-gradient-to-r from-pink-500 to-purple-600">
+                          <Save className="w-4 h-4 mr-2" />
+                          Save Changes
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
+                  <Card className="p-8">
+                    <div className="space-y-8">
+                      {/* Profile Image Section */}
+                      <div className="flex items-center space-x-6">
+                        <Avatar className="w-24 h-24">
+                          {galleryForm.profileImage ? (
+                            <AvatarImage src={galleryForm.profileImage} alt="Gallery" />
+                          ) : (
+                            <AvatarFallback className="bg-gradient-to-r from-pink-500 to-purple-600 text-white text-2xl">
+                              {galleryForm.name.charAt(0) || 'G'}
+                            </AvatarFallback>
+                          )}
+                        </Avatar>
+                        {editMode && (
+                          <div>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleProfileImageUpload(file);
+                              }}
+                              className="hidden"
+                              id="profile-upload"
+                              disabled={uploading}
+                            />
+                            <Label htmlFor="profile-upload">
+                              <Button variant="outline" asChild disabled={uploading}>
+                                <span>
+                                  <Camera className="w-4 h-4 mr-2" />
+                                  {uploading ? 'Uploading...' : 'Change Photo'}
+                                </span>
+                              </Button>
+                            </Label>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Gallery Name */}
+                      <div className="space-y-3">
+                        <Label htmlFor="gallery-name" className="text-lg font-medium">Gallery Name</Label>
+                        {editMode ? (
+                          <Input
+                            id="gallery-name"
+                            value={galleryForm.name}
+                            onChange={(e) => setGalleryForm(prev => ({ ...prev, name: e.target.value }))}
+                            placeholder="Enter gallery name"
+                            className="text-lg"
+                          />
+                        ) : (
+                          <p className="text-xl font-medium text-gray-800">{gallery?.name || 'Untitled Gallery'}</p>
+                        )}
+                      </div>
+
+                      {/* Bio */}
+                      <div className="space-y-3">
+                        <Label htmlFor="gallery-bio" className="text-lg font-medium">Bio / Description</Label>
+                        {editMode ? (
+                          <Textarea
+                            id="gallery-bio"
+                            value={galleryForm.bio}
+                            onChange={(e) => setGalleryForm(prev => ({ ...prev, bio: e.target.value }))}
+                            placeholder="Tell people about this gallery..."
+                            rows={4}
+                            className="text-base"
+                          />
+                        ) : (
+                          <p className="text-gray-600 text-base leading-relaxed">{gallery?.bio || 'No description yet.'}</p>
+                        )}
+                      </div>
+
+                      {/* Gallery Information */}
+                      <div className="border-t pt-6 space-y-4">
+                        <h3 className="text-lg font-medium">Gallery Information</h3>
+                        <div className="grid grid-cols-2 gap-6">
+                          <div>
+                            <span className="text-gray-500 font-medium">Theme:</span>
+                            <p className="text-gray-800 capitalize mt-1">{gallery?.theme}</p>
+                          </div>
+                          <div>
+                            <span className="text-gray-500 font-medium">Created:</span>
+                            <p className="text-gray-800 mt-1">{gallery?.createdAt ? new Date(gallery.createdAt).toLocaleDateString() : 'Unknown'}</p>
+                          </div>
+                          <div>
+                            <span className="text-gray-500 font-medium">Owner:</span>
+                            <p className="text-gray-800 mt-1">{gallery?.ownerEmail}</p>
+                          </div>
+                          <div>
+                            <span className="text-gray-500 font-medium">Status:</span>
+                            <Badge variant={gallery?.isLive ? 'default' : 'secondary'} className="mt-1">
+                              {gallery?.isLive ? 'Live' : 'Draft'}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
                 </div>
               )}
             </div>

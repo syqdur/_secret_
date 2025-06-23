@@ -154,7 +154,7 @@ export const updateVisitorActivity = async (galleryId: string, visitorId: string
 };
 
 // Media operations
-export const uploadFile = async (file: File, galleryId: string, type: 'photo' | 'video' | 'story'): Promise<string> => {
+export const uploadFile = async (file: File, galleryId: string, type: 'photo' | 'video' | 'story' | 'profile'): Promise<string> => {
   try {
     console.log('Starting file upload:', { fileName: file.name, galleryId, type, fileSize: file.size });
     
@@ -177,31 +177,51 @@ export const uploadFile = async (file: File, galleryId: string, type: 'photo' | 
 };
 
 export const createMedia = async (mediaData: InsertMedia): Promise<string> => {
-  const colRef = collection(db, `galleries/${mediaData.galleryId}/media`);
-  const docRef = await addDoc(colRef, {
-    ...mediaData,
-    createdAt: serverTimestamp(),
-    expiresAt: mediaData.type === 'story' 
-      ? Timestamp.fromDate(new Date(Date.now() + 24 * 60 * 60 * 1000))
-      : null,
-  });
-  return docRef.id;
+  try {
+    const colRef = collection(db, `galleries/${mediaData.galleryId}/media`);
+    
+    // Ensure all required fields are present and properly typed
+    const cleanMediaData = {
+      galleryId: mediaData.galleryId,
+      visitorId: mediaData.visitorId || 'owner',
+      url: mediaData.url,
+      type: mediaData.type,
+      caption: mediaData.caption || null,
+      thumbnailUrl: mediaData.thumbnailUrl || null,
+      createdAt: serverTimestamp(),
+      expiresAt: mediaData.type === 'story' 
+        ? Timestamp.fromDate(new Date(Date.now() + 24 * 60 * 60 * 1000))
+        : null,
+    };
+    
+    console.log('Creating media entry with data:', cleanMediaData);
+    
+    const docRef = await addDoc(colRef, cleanMediaData);
+    console.log('Media entry created successfully with ID:', docRef.id);
+    return docRef.id;
+  } catch (error) {
+    console.error('Error creating media entry:', error);
+    throw error;
+  }
 };
 
 export const getMedia = async (galleryId: string): Promise<Media[]> => {
   const colRef = collection(db, `galleries/${galleryId}/media`);
-  const q = query(colRef, orderBy('createdAt', 'desc'));
-  const querySnapshot = await getDocs(q);
+  const querySnapshot = await getDocs(colRef);
   
-  return querySnapshot.docs.map(doc => {
-    const data = doc.data();
-    return {
-      ...data,
-      id: doc.id,
-      createdAt: data.createdAt?.toDate() || new Date(),
-      expiresAt: data.expiresAt?.toDate() || null,
-    } as Media;
-  });
+  // Filter out stories from the main gallery feed
+  return querySnapshot.docs
+    .map(doc => {
+      const data = doc.data();
+      return {
+        ...data,
+        id: doc.id,
+        createdAt: data.createdAt?.toDate() || new Date(),
+        expiresAt: data.expiresAt?.toDate() || null,
+      } as Media;
+    })
+    .filter(media => media.type !== 'story') // Exclude stories from main feed
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 };
 
 export const getStories = async (galleryId: string): Promise<Media[]> => {
@@ -262,7 +282,7 @@ export const createComment = async (commentData: InsertComment): Promise<string>
 
 export const getComments = async (galleryId: string, mediaId: string): Promise<Comment[]> => {
   const colRef = collection(db, `galleries/${galleryId}/comments`);
-  const q = query(colRef, where('mediaId', '==', mediaId), orderBy('createdAt', 'asc'));
+  const q = query(colRef, where('mediaId', '==', mediaId));
   const querySnapshot = await getDocs(q);
   
   return querySnapshot.docs.map(doc => {
@@ -272,7 +292,7 @@ export const getComments = async (galleryId: string, mediaId: string): Promise<C
       id: doc.id,
       createdAt: data.createdAt?.toDate() || new Date(),
     } as Comment;
-  });
+  }).sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime()); // Sort in memory
 };
 
 export const deleteComment = async (galleryId: string, commentId: string) => {
@@ -376,9 +396,8 @@ export const getTimeline = async (galleryId: string): Promise<TimelineEntry[]> =
 // Real-time subscriptions
 export const subscribeToGalleryMedia = (galleryId: string, callback: (media: Media[]) => void) => {
   const colRef = collection(db, `galleries/${galleryId}/media`);
-  const q = query(colRef, orderBy('createdAt', 'desc'));
   
-  return onSnapshot(q, (querySnapshot) => {
+  return onSnapshot(colRef, (querySnapshot) => {
     const media = querySnapshot.docs.map(doc => {
       const data = doc.data();
       return {
@@ -387,14 +406,15 @@ export const subscribeToGalleryMedia = (galleryId: string, callback: (media: Med
         createdAt: data.createdAt?.toDate() || new Date(),
         expiresAt: data.expiresAt?.toDate() || null,
       } as Media;
-    });
+    }).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()); // Sort in memory instead
+    
     callback(media);
   });
 };
 
 export const subscribeToComments = (galleryId: string, mediaId: string, callback: (comments: Comment[]) => void) => {
   const colRef = collection(db, `galleries/${galleryId}/comments`);
-  const q = query(colRef, where('mediaId', '==', mediaId), orderBy('createdAt', 'asc'));
+  const q = query(colRef, where('mediaId', '==', mediaId));
   
   return onSnapshot(q, (querySnapshot) => {
     const comments = querySnapshot.docs.map(doc => {

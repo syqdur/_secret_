@@ -79,8 +79,18 @@ export const GalleryOnboarding: React.FC<GalleryOnboardingProps> = ({ onComplete
         isLive: true,
       });
 
-      // Skip profile image upload for now due to Firebase permissions
-      // Will be enabled once Firebase rules are configured
+      // Upload profile image if provided
+      let profileImageUrl = '';
+      if (profileImage) {
+        try {
+          profileImageUrl = await uploadFile(profileImage, galleryId, 'profile');
+          // Update gallery with profile image URL
+          await updateGallery(galleryId, { profileImage: profileImageUrl });
+        } catch (error) {
+          console.error('Error uploading profile image:', error);
+          // Continue without profile image
+        }
+      }
 
       onComplete(galleryId);
     } catch (error) {

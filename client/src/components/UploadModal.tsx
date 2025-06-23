@@ -1,14 +1,15 @@
 import React, { useState, useRef } from 'react';
 import { useGallery } from '@/contexts/GalleryContext';
 import { useVisitor } from '@/contexts/VisitorContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { uploadFile, createMedia } from '@/lib/storage';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { X, Upload, Camera, Video, Clock, Image as ImageIcon } from 'lucide-react';
+import { X, Upload, Camera, Video, Clock, Image as ImageIcon, Play } from 'lucide-react';
 
 interface UploadModalProps {
   open: boolean;
@@ -18,6 +19,7 @@ interface UploadModalProps {
 export const UploadModal: React.FC<UploadModalProps> = ({ open, onClose }) => {
   const { gallery } = useGallery();
   const { visitor } = useVisitor();
+  const { user } = useAuth();
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [caption, setCaption] = useState('');
   const [uploadType, setUploadType] = useState<'photo' | 'video' | 'story'>('photo');
@@ -63,8 +65,25 @@ export const UploadModal: React.FC<UploadModalProps> = ({ open, onClose }) => {
   };
 
   const handleUpload = async () => {
-    if (!gallery || !visitor || selectedFiles.length === 0) {
-      console.log('Upload blocked - missing requirements:', { gallery: !!gallery, visitor: !!visitor, files: selectedFiles.length });
+    const isOwner = user?.email === gallery?.ownerEmail;
+    
+    // Gallery owners don't need visitor registration
+    if (!gallery || (!visitor && !isOwner) || selectedFiles.length === 0) {
+      console.log('Upload blocked - missing requirements:', { 
+        gallery: !!gallery, 
+        visitor: !!visitor, 
+        isOwner,
+        files: selectedFiles.length 
+      });
+      
+      if (!visitor && !isOwner) {
+        alert('Please complete your registration first by entering your name.');
+        return;
+      }
+      if (selectedFiles.length === 0) {
+        alert('Please select files to upload.');
+        return;
+      }
       return;
     }
 
@@ -77,7 +96,7 @@ export const UploadModal: React.FC<UploadModalProps> = ({ open, onClose }) => {
         
         await createMedia({
           galleryId: gallery.id,
-          visitorId: visitor.id,
+          visitorId: visitor?.id || 'owner',
           url,
           type: uploadType,
           caption: caption.trim() || undefined,
@@ -114,6 +133,10 @@ export const UploadModal: React.FC<UploadModalProps> = ({ open, onClose }) => {
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogTitle className="sr-only">Share a Memory</DialogTitle>
+        <DialogDescription className="sr-only">
+          Upload photos, videos, or stories to share with the gallery
+        </DialogDescription>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
           <CardTitle className="text-2xl font-bold">Share a Memory</CardTitle>
           <Button variant="ghost" size="sm" onClick={handleClose}>
@@ -168,11 +191,17 @@ export const UploadModal: React.FC<UploadModalProps> = ({ open, onClose }) => {
                 {previews.map((preview, index) => (
                   <div key={index} className="relative">
                     {uploadType === 'video' ? (
-                      <video
-                        src={preview}
-                        className="w-full h-32 object-cover rounded-lg"
-                        controls
-                      />
+                      <div className="relative">
+                        <video
+                          src={preview}
+                          className="w-full h-32 object-cover rounded-lg"
+                          controls
+                          preload="metadata"
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 rounded-lg pointer-events-none">
+                          <Play className="w-8 h-8 text-white opacity-80" />
+                        </div>
+                      </div>
                     ) : (
                       <img
                         src={preview}

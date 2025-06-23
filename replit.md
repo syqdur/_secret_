@@ -66,6 +66,15 @@ The application follows a modern full-stack architecture with:
 
 - June 23, 2025. Initial setup
 - June 23, 2025. Complete WeddingPix platform implementation:
+- June 23, 2025. Migration to Replit environment completed:
+  - Fixed dialog accessibility warnings
+  - Improved visitor registration flow
+  - Enhanced upload functionality with better error handling
+  - Fixed profile image upload in gallery onboarding
+  - Improved video upload preview functionality
+  - Resolved Firebase Storage authentication issues
+  - Fixed React hooks error in upload component
+  - Separated gallery owner vs visitor authentication flows
   - Firebase authentication and real-time database integration
   - Multi-theme gallery system (wedding, birthday, vacation, custom)
   - Device-based visitor identification system
@@ -73,6 +82,26 @@ The application follows a modern full-stack architecture with:
   - Spotify music request integration
   - Admin panel with full content moderation
   - Gallery isolation ensuring complete data separation
+- June 23, 2025. Migration to Replit environment completed:
+  - Fixed profile image upload in gallery onboarding
+  - Resolved visitor registration state propagation issues
+  - Fixed dialog accessibility warnings
+  - Improved upload modal with better error handling
+  - Enhanced video preview functionality
+  - All core features working properly
+- June 23, 2025. Instagram-style stories implementation:
+  - Implemented proper 9:16 aspect ratio stories viewer
+  - Stories completely separated from main gallery feed
+  - Added delete functionality for content creators (users can delete their own uploads)
+  - Gallery owners can delete any content, visitors can only delete their own content
+  - Fixed stories bar real-time updates after uploads
+- June 23, 2025. Gallery management improvements:
+  - Synced "Gallery Owner" display to use actual gallery name throughout app
+  - Added comprehensive gallery settings panel in admin mode
+  - Gallery owners can now edit gallery name, bio, and profile image
+  - Updated all components to use gallery name instead of generic "Gallery Owner" text
+  - Fixed stories separation issue - stories now only appear in stories bar, never in main feed
+  - Removed timeline widget and gallery stats from interface per user request
 
 ## User Preferences
 

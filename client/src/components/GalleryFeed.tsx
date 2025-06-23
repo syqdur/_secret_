@@ -34,35 +34,41 @@ export const GalleryFeed: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!gallery || !visitor) return;
+    if (!gallery) return;
 
     const unsubscribe = subscribeToGalleryMedia(gallery.id, async (mediaData) => {
       try {
-        // Filter out expired stories and add details
-        const activeMedia = mediaData.filter(item => {
-          if (item.type === 'story' && item.expiresAt) {
-            return item.expiresAt > new Date();
-          }
-          return item.type !== 'story'; // Include photos and videos
-        });
+        // Only include photos and videos in the main feed - NO STORIES
+        const feedOnlyMedia = mediaData.filter(item => item.type === 'photo' || item.type === 'video');
 
         const mediaWithDetails = await Promise.all(
-          activeMedia.map(async (item) => {
-            const [likes, comments, author] = await Promise.all([
-              getLikes(gallery.id, item.id),
-              getComments(gallery.id, item.id),
-              getVisitor(gallery.id, item.visitorId)
-            ]);
+          feedOnlyMedia.map(async (item) => {
+            try {
+              const [likes, comments, author] = await Promise.all([
+                getLikes(gallery.id, item.id).catch(() => []),
+                getComments(gallery.id, item.id).catch(() => []),
+                getVisitor(gallery.id, item.visitorId).catch(() => null)
+              ]);
 
-            const isLiked = likes.some(like => like.visitorId === visitor.id);
+              const isLiked = visitor ? likes.some(like => like.visitorId === visitor.id) : false;
 
-            return {
-              ...item,
-              authorName: author?.name || 'Unknown',
-              likes,
-              comments,
-              isLiked,
-            };
+              return {
+                ...item,
+                authorName: author?.name || gallery?.name || 'Gallery Owner',
+                likes,
+                comments,
+                isLiked,
+              };
+            } catch (error) {
+              console.error('Error processing media item:', error);
+              return {
+                ...item,
+                authorName: gallery?.name || 'Gallery Owner',
+                likes: [],
+                comments: [],
+                isLiked: false,
+              };
+            }
           })
         );
 

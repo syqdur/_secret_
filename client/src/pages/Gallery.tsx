@@ -5,10 +5,12 @@ import { VisitorProvider, useVisitor } from '@/contexts/VisitorContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { VisitorOnboarding } from '@/components/VisitorOnboarding';
 import { GalleryHeader } from '@/components/GalleryHeader';
-import { StoriesSection } from '@/components/StoriesSection';
+import { StoriesBar } from '@/components/StoriesBar';
+import { StoriesViewer } from '@/components/StoriesViewer';
+import { StoryUploadModal } from '@/components/StoryUploadModal';
 import { GalleryFeed } from '@/components/GalleryFeed';
 import { MusicWidget } from '@/components/MusicWidget';
-import { TimelineWidget } from '@/components/TimelineWidget';
+
 import { UploadModal } from '@/components/UploadModal';
 import { AdminPanel } from '@/components/AdminPanel';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,25 +21,18 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { 
   Plus, 
   AlertCircle, 
-  Users, 
-  Images, 
-  BarChart3, 
   X,
   Play,
   Pause
 } from 'lucide-react';
+import { uploadFile, createMedia, getStories, deleteMedia } from '@/lib/storage';
+import { Media } from '@shared/schema';
 
 interface GalleryPageProps {
   galleryId: string;
 }
 
-interface Story {
-  id: string;
-  url: string;
-  authorName?: string;
-  createdAt: Date;
-  expiresAt?: Date;
-}
+
 
 function GalleryContent() {
   const { gallery, loading, error } = useGallery();
@@ -46,14 +41,11 @@ function GalleryContent() {
   const [location, setLocation] = useLocation();
   const [showUpload, setShowUpload] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
+  const [showStoryUpload, setShowStoryUpload] = useState(false);
   const [showStoryViewer, setShowStoryViewer] = useState(false);
-  const [currentStory, setCurrentStory] = useState<Story | null>(null);
-  const [stats, setStats] = useState({
-    photos: 0,
-    videos: 0,
-    guests: 0,
-    likes: 0,
-  });
+  const [storyViewerIndex, setStoryViewerIndex] = useState(0);
+  const [storiesData, setStoriesData] = useState<Media[]>([]);
+
 
   // Check for admin parameter in URL
   useEffect(() => {
@@ -63,31 +55,61 @@ function GalleryContent() {
     }
   }, [location, user, gallery]);
 
-  // Generate mock stats for demo
-  useEffect(() => {
-    if (gallery) {
-      setStats({
-        photos: Math.floor(Math.random() * 50) + 20,
-        videos: Math.floor(Math.random() * 10) + 5,
-        guests: Math.floor(Math.random() * 30) + 15,
-        likes: Math.floor(Math.random() * 200) + 100,
-      });
-    }
-  }, [gallery]);
 
-  const handleStoryView = (story: Story) => {
-    setCurrentStory(story);
+
+  const handleStoryView = (story: Media) => {
+    const storyIndex = storiesData.findIndex(s => s.id === story.id);
+    setStoryViewerIndex(storyIndex >= 0 ? storyIndex : 0);
     setShowStoryViewer(true);
   };
 
   const handleAddStory = () => {
-    setShowUpload(true);
+    setShowStoryUpload(true);
   };
 
-  const closeStoryViewer = () => {
-    setShowStoryViewer(false);
-    setCurrentStory(null);
+  const handleStoryUpload = async (file: File, caption?: string) => {
+    if (!gallery) return;
+    
+    try {
+      const url = await uploadFile(file, gallery.id, 'story');
+      await createMedia({
+        galleryId: gallery.id,
+        visitorId: visitor?.id || 'owner',
+        url,
+        type: 'story',
+        caption: caption || undefined,
+      });
+      
+      // Refresh stories data immediately
+      const updatedStories = await getStories(gallery.id);
+      setStoriesData(updatedStories);
+      console.log('Stories refreshed:', updatedStories.length);
+    } catch (error) {
+      console.error('Error uploading story:', error);
+      throw error;
+    }
   };
+
+  // Load stories data
+  useEffect(() => {
+    if (!gallery) return;
+
+    const loadStories = async () => {
+      try {
+        const stories = await getStories(gallery.id);
+        setStoriesData(stories);
+        console.log('Gallery stories loaded:', stories.length);
+      } catch (error) {
+        console.error('Error loading stories:', error);
+      }
+    };
+
+    loadStories();
+    
+    // Refresh stories every 30 seconds
+    const interval = setInterval(loadStories, 30000);
+    return () => clearInterval(interval);
+  }, [gallery]);
 
   if (loading) {
     return (
@@ -208,10 +230,12 @@ function GalleryContent() {
     );
   }
 
+  const isOwner = user?.email === gallery?.ownerEmail;
+
   return (
     <>
-      {/* Visitor Onboarding */}
-      {isFirstTime && !user && <VisitorOnboarding />}
+      {/* Visitor Onboarding - only for non-owners */}
+      {isFirstTime && !user && !isOwner && <VisitorOnboarding />}
 
       <div className="min-h-screen bg-gray-50">
         {/* Gallery Header */}
@@ -221,7 +245,8 @@ function GalleryContent() {
         />
 
         {/* Stories Section */}
-        <StoriesSection
+        <StoriesBar
+          stories={storiesData}
           onAddStory={handleAddStory}
           onViewStory={handleStoryView}
         />
@@ -239,38 +264,9 @@ function GalleryContent() {
               {/* Music Widget */}
               <MusicWidget />
 
-              {/* Timeline Widget */}
-              <TimelineWidget />
 
-              {/* Stats Widget */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center text-lg">
-                    <BarChart3 className="w-5 h-5 text-pink-500 mr-2" />
-                    Gallery Stats
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="text-center">
-                      <p className="text-2xl font-bold text-pink-500">{stats.photos}</p>
-                      <p className="text-xs text-gray-600">Photos</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-2xl font-bold text-purple-500">{stats.videos}</p>
-                      <p className="text-xs text-gray-600">Videos</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-2xl font-bold text-blue-500">{stats.guests}</p>
-                      <p className="text-xs text-gray-600">Guests</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-2xl font-bold text-green-500">{stats.likes}</p>
-                      <p className="text-xs text-gray-600">Likes</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+
+
             </div>
           </div>
         </div>
@@ -289,39 +285,23 @@ function GalleryContent() {
       {/* Upload Modal */}
       <UploadModal open={showUpload} onClose={() => setShowUpload(false)} />
 
+      {/* Story Upload Modal */}
+      <StoryUploadModal 
+        open={showStoryUpload} 
+        onClose={() => setShowStoryUpload(false)}
+        onUpload={handleStoryUpload}
+      />
+
+      {/* Stories Viewer */}
+      <StoriesViewer
+        isOpen={showStoryViewer}
+        stories={storiesData}
+        initialStoryIndex={storyViewerIndex}
+        onClose={() => setShowStoryViewer(false)}
+      />
+
       {/* Admin Panel */}
       <AdminPanel open={showAdmin} onClose={() => setShowAdmin(false)} />
-
-      {/* Story Viewer */}
-      <Dialog open={showStoryViewer} onOpenChange={closeStoryViewer}>
-        <DialogContent className="max-w-md p-0 border-0 bg-transparent">
-          {currentStory && (
-            <div className="relative">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={closeStoryViewer}
-                className="absolute top-4 right-4 z-10 bg-black/20 text-white hover:bg-black/40"
-              >
-                <X className="w-4 h-4" />
-              </Button>
-              <div className="bg-black rounded-lg overflow-hidden">
-                <img
-                  src={currentStory.url}
-                  alt="Story"
-                  className="w-full max-h-[80vh] object-contain"
-                />
-                <div className="p-4 text-white">
-                  <p className="font-medium">{currentStory.authorName}</p>
-                  <p className="text-sm text-gray-300">
-                    {currentStory.createdAt && new Date(currentStory.createdAt).toLocaleString()}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </>
   );
 }

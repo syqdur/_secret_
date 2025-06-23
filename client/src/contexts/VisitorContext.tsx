@@ -106,6 +106,9 @@ export const VisitorProvider: React.FC<VisitorProviderProps> = ({ children, gall
       setIsFirstTime(false);
       
       localStorage.setItem(`weddingpix_visitor_${galleryId}`, JSON.stringify(newVisitor));
+      
+      // Force a small delay to ensure state updates propagate
+      await new Promise(resolve => setTimeout(resolve, 100));
     } catch (error) {
       console.error('Error registering visitor:', error);
       throw error;
