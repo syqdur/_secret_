@@ -74,10 +74,11 @@ function GalleryContent() {
       const url = await uploadFile(file, gallery.id, 'story');
       await createMedia({
         galleryId: gallery.id,
-        visitorId: visitor?.id || 'owner',
+        authorId: 'owner', // Fixed: use authorId for owner uploads
         url,
         type: 'story',
         caption: caption || undefined,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24h expiry
       });
       
       // Refresh stories data immediately

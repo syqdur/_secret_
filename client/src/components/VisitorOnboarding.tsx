@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { t } from '@/lib/translations';
 import { useGallery } from '@/contexts/GalleryContext';
 import { useVisitor } from '@/contexts/VisitorContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,10 +22,23 @@ export const VisitorOnboarding: React.FC = () => {
 
     setIsRegistering(true);
     try {
+      console.log('Onboarding: Attempting to register visitor with name:', name.trim());
       await registerVisitor(gallery.id, name.trim());
+      console.log('Onboarding: Visitor registration successful');
     } catch (error) {
-      console.error('Registration failed:', error);
-      alert('Registration failed. Please try again.');
+      console.error('Onboarding: Registration failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unbekannter Fehler';
+      console.error('Onboarding: Error details:', errorMessage);
+      
+      // Provide user-friendly error message
+      let friendlyMessage = 'Registrierung fehlgeschlagen. Bitte versuchen Sie es erneut.';
+      if (errorMessage.includes('auth/admin-restricted-operation')) {
+        friendlyMessage = 'Gast-Registrierung ist temporär nicht verfügbar. Bitte versuchen Sie es später erneut.';
+      } else if (errorMessage.includes('Failed to create visitor')) {
+        friendlyMessage = 'Verbindungsfehler. Bitte überprüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.';
+      }
+      
+      alert(friendlyMessage);
     } finally {
       setIsRegistering(false);
     }
@@ -48,7 +62,7 @@ export const VisitorOnboarding: React.FC = () => {
       <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading gallery...</p>
+          <p className="text-gray-600">{t('galleryLoading')}</p>
         </div>
       </div>
     );
@@ -76,29 +90,29 @@ export const VisitorOnboarding: React.FC = () => {
         {/* Registration Form */}
         <Card className="rounded-t-none border-t-0">
           <CardHeader className="text-center pb-4">
-            <CardTitle className="text-xl text-gray-800">Welcome!</CardTitle>
+            <CardTitle className="text-xl text-gray-800">{t('welcomeToGallery')}</CardTitle>
             <p className="text-gray-600 text-sm">
-              Enter your name to join the gallery and start sharing memories
+              {t('enterYourName')}
             </p>
           </CardHeader>
           <CardContent className="space-y-6">
             <form onSubmit={handleRegister} className="space-y-4">
               <div>
                 <Label htmlFor="name" className="text-sm font-medium text-gray-700">
-                  Your Name
+                  {t('yourName')}
                 </Label>
                 <Input
                   id="name"
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g., Julia H. from Table 4"
+                  placeholder="z.B. Julia H. von Tisch 4"
                   className="mt-1"
                   required
                   disabled={isRegistering}
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  This helps others identify you in the gallery
+                  Dies hilft anderen, Sie in der Galerie zu identifizieren
                 </p>
               </div>
 
@@ -110,10 +124,10 @@ export const VisitorOnboarding: React.FC = () => {
                 {isRegistering ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Joining...
+                    {t('loading')}
                   </>
                 ) : (
-                  'Join Gallery'
+                  t('joinGallery')
                 )}
               </Button>
             </form>

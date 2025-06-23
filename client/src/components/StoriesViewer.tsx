@@ -33,7 +33,7 @@ export const StoriesViewer: React.FC<StoriesViewerProps> = ({
   const isOwner = user?.email === gallery?.ownerEmail;
 
   // Check if current user can delete this story (owner OR the person who uploaded it)
-  const canDeleteStory = isOwner || (currentStory && visitor && currentStory.visitorId === visitor.id) || (currentStory && currentStory.visitorId === 'owner');
+  const canDeleteStory = isOwner || (currentStory && visitor && currentStory.authorId === visitor.id) || (currentStory && currentStory.authorId === 'owner');
 
   useEffect(() => {
     if (!isOpen || !currentStory) return;
@@ -131,7 +131,7 @@ export const StoriesViewer: React.FC<StoriesViewerProps> = ({
     if (!currentStory || !canDeleteStory || !onDeleteStory) return;
 
     const storyType = currentStory.type === 'video' ? 'Video story' : 'Photo story';
-    const isOwnStory = visitor && currentStory.visitorId === visitor.id;
+    const isOwnStory = visitor && currentStory.authorId === visitor.id;
     const confirmMessage = isOwnStory 
       ? `Delete your ${storyType.toLowerCase()}?`
       : `Delete this ${storyType.toLowerCase()}?`;
@@ -188,12 +188,12 @@ export const StoriesViewer: React.FC<StoriesViewerProps> = ({
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-r from-pink-500 to-purple-600 flex items-center justify-center">
             <span className="text-white font-bold text-sm">
-              {currentStory.visitorId === 'owner' ? 'O' : currentStory.visitorId.charAt(0).toUpperCase()}
+              {currentStory.authorId === 'owner' ? 'O' : (currentStory.authorId || 'G').charAt(0).toUpperCase()}
             </span>
           </div>
           <div>
             <span className="text-white font-semibold text-sm">
-              {currentStory.visitorId === 'owner' ? (gallery?.name || 'Gallery Owner') : currentStory.visitorId}
+              {currentStory.authorId === 'owner' ? (gallery?.name || 'Gallery Owner') : currentStory.authorId || 'Guest'}
             </span>
             <div className="text-white/70 text-xs">
               {formatTimeAgo(currentStory.createdAt)}

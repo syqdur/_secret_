@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Upload, Heart, MessageCircle, Users } from 'lucide-react';
+import { t } from '@/lib/translations';
 
 export const GuestGalleryContent: React.FC = () => {
   const { gallery, loading: galleryLoading, error } = useGallery();
@@ -17,12 +18,17 @@ export const GuestGalleryContent: React.FC = () => {
   const [showUpload, setShowUpload] = useState(false);
   const [showStoryUpload, setShowStoryUpload] = useState(false);
 
+  // Debug logging
+  useEffect(() => {
+    console.log('GuestGalleryContent state:', { gallery: !!gallery, visitor, isFirstTime });
+  }, [gallery, visitor, isFirstTime]);
+
   if (galleryLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading gallery...</p>
+          <p className="text-gray-600">{t('galleryLoading')}</p>
         </div>
       </div>
     );
@@ -39,7 +45,7 @@ export const GuestGalleryContent: React.FC = () => {
     );
   }
 
-  if (isFirstTime) {
+  if (isFirstTime || !visitor) {
     return <VisitorOnboarding />;
   }
 
@@ -92,18 +98,20 @@ export const GuestGalleryContent: React.FC = () => {
         <div className="flex flex-wrap gap-3 mb-6">
           <Button
             onClick={() => setShowUpload(true)}
-            className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white"
+            disabled={!visitor || !visitor.id}
+            className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white disabled:opacity-50"
           >
             <Upload className="w-4 h-4 mr-2" />
-            Upload Photo/Video
+            {t('uploadPhotoVideo')}
           </Button>
           <Button
             onClick={() => setShowStoryUpload(true)}
+            disabled={!visitor || !visitor.id}
             variant="outline"
-            className="border-pink-300 text-pink-600 hover:bg-pink-50"
+            className="border-pink-300 text-pink-600 hover:bg-pink-50 disabled:opacity-50"
           >
             <Plus className="w-4 h-4 mr-2" />
-            Add Story
+            {t('addStory')}
           </Button>
         </div>
 

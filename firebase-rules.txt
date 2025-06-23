@@ -35,7 +35,7 @@ service cloud.firestore {
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    // Allow authenticated users to upload to galleries
+    // Allow authenticated users (including anonymous) to upload to galleries
     match /galleries/{galleryId}/{allPaths=**} {
       allow read, write: if request.auth != null;
     }
@@ -46,6 +46,21 @@ service firebase.storage {
     }
     // Allow profile image uploads
     match /galleries/{galleryId}/profiles/{fileName} {
+      allow read;
+      allow write: if request.auth != null;
+    }
+    // Allow stories uploads
+    match /galleries/{galleryId}/storys/{fileName} {
+      allow read;
+      allow write: if request.auth != null;
+    }
+    // Allow photo uploads
+    match /galleries/{galleryId}/photos/{fileName} {
+      allow read;
+      allow write: if request.auth != null;
+    }
+    // Allow video uploads
+    match /galleries/{galleryId}/videos/{fileName} {
       allow read;
       allow write: if request.auth != null;
     }

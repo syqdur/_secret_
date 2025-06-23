@@ -63,9 +63,24 @@ export const registerVisitor = async (galleryId: string, name: string, deviceId:
 
 export const findVisitorByDevice = async (galleryId: string, deviceId: string, fingerprint: string): Promise<Visitor | null> => {
   try {
-    const visitor = await registerVisitor(galleryId, '', deviceId, fingerprint);
-    return visitor;
+    const response = await fetch(`${API_BASE}/galleries/${galleryId}/visitors/find`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        deviceId,
+        fingerprint,
+      }),
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    return await response.json();
   } catch (error) {
+    console.error('Error finding visitor:', error);
     return null;
   }
 };
@@ -101,23 +116,42 @@ export const uploadFile = async (file: File, galleryId: string, type: 'photo' | 
 // Media operations
 export const createMedia = async (mediaData: InsertMedia): Promise<Media> => {
   try {
+    console.log('Creating media with data:', {
+      galleryId: mediaData.galleryId,
+      authorId: mediaData.authorId,
+      type: mediaData.type,
+      caption: mediaData.caption,
+      expiresAt: mediaData.expiresAt
+    });
+
+    if (!mediaData.authorId) {
+      console.error('Media creation failed: No authorId provided');
+      throw new Error('Author ID is required for media creation');
+    }
+
+    const requestBody = {
+      visitorId: mediaData.authorId,
+      url: mediaData.url,
+      thumbnailUrl: mediaData.thumbnailUrl,
+      type: mediaData.type,
+      caption: mediaData.caption,
+      expiresAt: mediaData.expiresAt?.toISOString(),
+    };
+
+    console.log('Request body for media creation:', requestBody);
+
     const response = await fetch(`${API_BASE}/galleries/${mediaData.galleryId}/media`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        visitorId: mediaData.authorId,
-        url: mediaData.url,
-        thumbnailUrl: mediaData.thumbnailUrl,
-        type: mediaData.type,
-        caption: mediaData.caption,
-        expiresAt: mediaData.expiresAt,
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
-      throw new Error('Failed to create media');
+      const errorText = await response.text();
+      console.error('Media creation failed:', response.status, errorText);
+      throw new Error(`Failed to create media: ${response.status} ${errorText}`);
     }
 
     return await response.json();
@@ -295,15 +329,36 @@ export const createGallery = async (galleryData: InsertGallery & { id?: string }
   }
 };
 
-export const createVisitor = async (visitorData: InsertVisitor): Promise<string> => {
-  // Legacy function - now uses API
-  const visitor = await registerVisitor(
-    visitorData.galleryId, 
-    visitorData.name, 
-    visitorData.deviceId, 
-    visitorData.fingerprint
-  );
-  return visitor.id;
+export const createVisitor = async (visitorData: InsertVisitor): Promise<Visitor> => {
+  try {
+    console.log('API: Creating visitor with data:', visitorData);
+    
+    const response = await fetch(`${API_BASE}/galleries/${visitorData.galleryId}/visitors`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(visitorData),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('API: Visitor creation failed:', response.status, errorText);
+      throw new Error(`Failed to create visitor: ${response.status} ${errorText}`);
+    }
+
+    const visitor = await response.json();
+    console.log('API: Visitor created successfully:', visitor);
+    
+    if (!visitor || !visitor.id) {
+      throw new Error('Invalid visitor response - missing ID');
+    }
+
+    return visitor;
+  } catch (error) {
+    console.error('API: Error creating visitor:', error);
+    throw error;
+  }
 };
 
 export const getVisitor = async (galleryId: string, visitorId: string): Promise<Visitor | null> => {

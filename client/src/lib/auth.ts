@@ -1,5 +1,5 @@
 import { auth } from './firebase';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, signInAnonymously } from 'firebase/auth';
 
 export const signIn = async (email: string, password: string) => {
   try {
@@ -23,6 +23,16 @@ export const logout = async () => {
   try {
     await signOut(auth);
   } catch (error) {
+    throw error;
+  }
+};
+
+export const signInAsGuest = async () => {
+  try {
+    const result = await signInAnonymously(auth);
+    return result.user;
+  } catch (error) {
+    console.error('Anonymous sign-in failed:', error);
     throw error;
   }
 };

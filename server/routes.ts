@@ -69,6 +69,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Visitor Registration
+  // Find visitor by device
+  app.post('/api/galleries/:galleryId/visitors/find', async (req, res) => {
+    try {
+      const { galleryId } = req.params;
+      const { deviceId, fingerprint } = req.body;
+
+      if (!deviceId || !fingerprint) {
+        return res.status(400).json({ error: 'DeviceId and fingerprint are required' });
+      }
+
+      const visitor = await storage.findVisitorByDevice(galleryId, deviceId, fingerprint);
+      if (!visitor) {
+        return res.status(404).json({ error: 'Visitor not found' });
+      }
+
+      res.json(visitor);
+    } catch (error) {
+      console.error('Error finding visitor:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
   app.post('/api/galleries/:galleryId/visitors', async (req, res) => {
     try {
       const { galleryId } = req.params;
@@ -81,7 +103,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if visitor already exists
       const existingVisitor = await storage.findVisitorByDevice(galleryId, deviceId, fingerprint);
       if (existingVisitor) {
-        // Update last active
+        // Update last active and name if provided
         const updatedVisitor = await storage.updateVisitorActivity(existingVisitor.id);
         return res.json(updatedVisitor);
       }
@@ -119,11 +141,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/galleries/:galleryId/media', async (req, res) => {
     try {
       const { galleryId } = req.params;
-      const { visitorId, url, thumbnailUrl, type, caption } = req.body;
+      const { visitorId, url, thumbnailUrl, type, caption, expiresAt } = req.body;
 
       if (!visitorId || !url || !type) {
+        console.error('Media creation validation failed:', { 
+          visitorId: visitorId || 'missing', 
+          url: url ? 'present' : 'missing', 
+          type: type || 'missing',
+          fullBody: req.body 
+        });
         return res.status(400).json({ error: 'VisitorId, url, and type are required' });
       }
+
+      console.log('Creating media with data:', { galleryId, visitorId, url, type, caption, expiresAt });
 
       const mediaData: InsertMedia = {
         galleryId,
@@ -132,10 +162,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         thumbnailUrl,
         type,
         caption,
-        expiresAt: type === 'story' ? new Date(Date.now() + 24 * 60 * 60 * 1000) : undefined, // 24h for stories
+        expiresAt: expiresAt ? new Date(expiresAt) : (type === 'story' ? new Date(Date.now() + 24 * 60 * 60 * 1000) : undefined), // 24h for stories
       };
 
       const media = await storage.createMedia(mediaData);
+      console.log('Media created successfully:', media.id);
       res.status(201).json(media);
     } catch (error) {
       console.error('Error creating media:', error);

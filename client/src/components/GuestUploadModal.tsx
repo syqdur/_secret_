@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Upload, Image, Video, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { t } from '@/lib/translations';
 
 interface GuestUploadModalProps {
   open: boolean;
@@ -23,6 +24,12 @@ export const GuestUploadModal: React.FC<GuestUploadModalProps> = ({ open, onClos
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Don't render modal if visitor is not available
+  if (open && (!visitor || !visitor.id)) {
+    console.log('Modal opened but visitor not available or invalid:', visitor);
+    return null;
+  }
   
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [caption, setCaption] = useState('');
@@ -48,10 +55,18 @@ export const GuestUploadModal: React.FC<GuestUploadModalProps> = ({ open, onClos
   };
 
   const handleUpload = async () => {
-    if (!selectedFile || !gallery || !visitor) {
+    console.log('Upload attempt with:', { selectedFile: !!selectedFile, gallery: !!gallery, visitor });
+    
+    if (!selectedFile || !gallery || !visitor || !visitor.id) {
+      console.error('Upload validation failed:', { 
+        selectedFile: !!selectedFile, 
+        gallery: !!gallery, 
+        visitor: visitor,
+        visitorId: visitor?.id 
+      });
       toast({
-        title: "Upload Error",
-        description: "Missing file, gallery, or visitor information",
+        title: "Upload Fehler",
+        description: visitor ? "Besucher-ID fehlt - bitte Seite neu laden" : "Datei oder Galerie-Information fehlt",
         variant: "destructive",
       });
       return;
@@ -69,6 +84,13 @@ export const GuestUploadModal: React.FC<GuestUploadModalProps> = ({ open, onClos
       const url = await uploadFile(selectedFile, gallery.id, uploadType);
       console.log('File uploaded successfully, creating media entry...');
       
+      console.log('Creating media entry with visitor:', visitor);
+      console.log('Visitor ID being used:', visitor.id);
+      
+      if (!visitor.id) {
+        throw new Error('Visitor ID is missing');
+      }
+
       // Create media entry in database
       await createMedia({
         galleryId: gallery.id,
@@ -89,8 +111,8 @@ export const GuestUploadModal: React.FC<GuestUploadModalProps> = ({ open, onClos
       }
       
       toast({
-        title: "Upload Successful",
-        description: `Your ${type === 'story' ? 'story' : 'post'} has been uploaded!`,
+        title: t('uploadSuccess'),
+        description: type === 'story' ? t('storyUploaded') : t('postUploaded'),
       });
       
       // Reset form and close
@@ -103,8 +125,8 @@ export const GuestUploadModal: React.FC<GuestUploadModalProps> = ({ open, onClos
     } catch (error) {
       console.error('Upload failed:', error);
       toast({
-        title: "Upload Failed",
-        description: "There was an error uploading your file. Please try again.",
+        title: t('uploadError'),
+        description: "Datei-Upload fehlgeschlagen. Bitte versuchen Sie es erneut.",
         variant: "destructive",
       });
     } finally {
@@ -130,7 +152,7 @@ export const GuestUploadModal: React.FC<GuestUploadModalProps> = ({ open, onClos
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>
-            {type === 'story' ? 'Add Story' : 'Upload Photo/Video'}
+            {type === 'story' ? t('addStory') : t('uploadPhotoVideo')}
           </DialogTitle>
         </DialogHeader>
 
@@ -143,10 +165,10 @@ export const GuestUploadModal: React.FC<GuestUploadModalProps> = ({ open, onClos
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-900">
-                    Choose a file to upload
+                    {t('selectFile')}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
-                    {type === 'story' ? 'Photos and videos for your story' : 'Photos and videos up to 100MB'}
+                    {t('supportedFormats')}
                   </p>
                 </div>
                 <Button
@@ -154,7 +176,7 @@ export const GuestUploadModal: React.FC<GuestUploadModalProps> = ({ open, onClos
                   className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700"
                 >
                   <Upload className="w-4 h-4 mr-2" />
-                  Select File
+                  {t('selectFile')}
                 </Button>
                 <input
                   ref={fileInputRef}
@@ -214,11 +236,11 @@ export const GuestUploadModal: React.FC<GuestUploadModalProps> = ({ open, onClos
               {/* Caption Input */}
               <div>
                 <Label htmlFor="caption">
-                  {type === 'story' ? 'Story Caption (Optional)' : 'Caption (Optional)'}
+                  {t('addCaption')}
                 </Label>
                 <Textarea
                   id="caption"
-                  placeholder={type === 'story' ? 'Add a story caption...' : 'Write a caption...'}
+                  placeholder={type === 'story' ? 'Story hinzufügen...' : 'Beschreibung hinzufügen...'}
                   value={caption}
                   onChange={(e) => setCaption(e.target.value)}
                   className="mt-1"
@@ -226,7 +248,7 @@ export const GuestUploadModal: React.FC<GuestUploadModalProps> = ({ open, onClos
                   maxLength={500}
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  {caption.length}/500 characters
+                  {caption.length}/500 Zeichen
                 </p>
               </div>
 
@@ -238,7 +260,7 @@ export const GuestUploadModal: React.FC<GuestUploadModalProps> = ({ open, onClos
                   className="flex-1"
                   disabled={isUploading}
                 >
-                  Cancel
+                  {t('cancel')}
                 </Button>
                 <Button
                   onClick={handleUpload}
@@ -248,12 +270,12 @@ export const GuestUploadModal: React.FC<GuestUploadModalProps> = ({ open, onClos
                   {isUploading ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Uploading...
+                      {t('uploading')}
                     </>
                   ) : (
                     <>
                       <Upload className="w-4 h-4 mr-2" />
-                      {type === 'story' ? 'Add to Story' : 'Upload'}
+                      {type === 'story' ? t('uploadStory') : t('uploadMedia')}
                     </>
                   )}
                 </Button>

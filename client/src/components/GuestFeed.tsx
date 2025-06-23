@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { t } from '@/lib/translations';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useGallery } from '@/contexts/GalleryContext';
 import { useVisitor } from '@/contexts/VisitorContext';
@@ -196,8 +197,8 @@ export const GuestFeed: React.FC = () => {
         <div className="w-16 h-16 bg-gray-200 rounded-full mx-auto mb-4 flex items-center justify-center">
           <MessageCircle className="w-8 h-8 text-gray-400" />
         </div>
-        <h3 className="text-lg font-medium text-gray-800 mb-2">No posts yet</h3>
-        <p className="text-gray-600">Be the first to share a photo or video!</p>
+        <h3 className="text-lg font-medium text-gray-800 mb-2">{t('noMediaYet')}</h3>
+        <p className="text-gray-600">{t('beFirstToUpload')}</p>
       </div>
     );
   }
@@ -300,7 +301,7 @@ export const GuestFeed: React.FC = () => {
                 {/* Likes count */}
                 {item.likes.length > 0 && (
                   <p className="text-sm font-medium text-gray-900 mb-2">
-                    {item.likes.length} {item.likes.length === 1 ? 'like' : 'likes'}
+                    {item.likes.length} {t('likesCount')}
                   </p>
                 )}
 
@@ -322,7 +323,7 @@ export const GuestFeed: React.FC = () => {
                     onClick={() => setShowComments(prev => ({ ...prev, [item.id]: true }))}
                     className="text-gray-500 mb-3 p-0 h-auto"
                   >
-                    View all {item.comments.length} comment{item.comments.length !== 1 ? 's' : ''}
+                    {item.comments.length} {t('commentsCount')} anzeigen
                   </Button>
                 )}
 
@@ -340,7 +341,7 @@ export const GuestFeed: React.FC = () => {
                           <div className="flex-1 min-w-0">
                             <p className="text-sm">
                               <span className="font-medium">
-                                {isOwnComment ? 'You' : `Guest ${comment.authorId.slice(-4)}`}
+                                {isOwnComment ? 'Sie' : `Gast ${comment.authorId.slice(-4)}`}
                               </span>{' '}
                               {comment.content}
                             </p>
@@ -373,7 +374,7 @@ export const GuestFeed: React.FC = () => {
                   </Avatar>
                   <div className="flex-1 flex space-x-2">
                     <Input
-                      placeholder="Add a comment..."
+                      placeholder={t('addComment')}
                       value={commentTexts[item.id] || ''}
                       onChange={(e) => setCommentTexts(prev => ({ ...prev, [item.id]: e.target.value }))}
                       onKeyPress={(e) => e.key === 'Enter' && handleComment(item.id)}
