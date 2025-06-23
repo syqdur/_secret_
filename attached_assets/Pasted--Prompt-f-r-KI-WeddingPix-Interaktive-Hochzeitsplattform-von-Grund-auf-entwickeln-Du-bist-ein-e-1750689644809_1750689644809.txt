@@ -1,0 +1,172 @@
+🧠 Prompt für KI: WeddingPix – Interaktive Hochzeitsplattform von Grund auf entwickeln
+Du bist ein erfahrener Fullstack-Entwickler mit Fokus auf Benutzerfreundlichkeit, Sicherheit und Performance. Baue eine moderne, interaktive Webplattform from scratch, die das bestehende Konzept von WeddingPix neu denkt und vollständig implementiert. Du verwendest moderne Technologien wie React, Tailwind, Supabase oder Firebase, Node.js (optional).
+
+🎯 Ziel der Anwendung
+Erstelle eine Webplattform namens WeddingPix – eine digitale Hochzeitsgalerie, in der Gäste:
+
+Fotos & Videos hochladen
+
+Beiträge kommentieren & liken
+
+Spotify-Musikwünsche äußern
+
+Geschichten über das Brautpaar lesen
+
+Stories ansehen (die automatisch nach 24h verschwinden)
+
+und über ein Admin-Panel verwaltet werden können
+
+🔐 Besucher-Identifikation & Rechte-Management (wichtig!)
+Beim ersten Besuch der Seite:
+
+Der Besucher erhält eine eindeutige ID, basierend auf dem Gerät oder Browser (z. B. via UUID + LocalStorage oder Fingerprinting)
+
+Der Nutzer wird aufgefordert, einen Namen einzugeben, der als Identifier gespeichert wird (z. B. „Julia H. von Tisch 4“)
+
+Die Besucher-ID + Name bleibt gespeichert und identifiziert alle zukünftigen Aktionen des Besuchers
+
+Jeder Benutzer kann nur seine eigenen:
+
+Bilder/Videos löschen
+
+Kommentare löschen
+
+Likes entfernen
+
+🖼 Features
+📸 Galerie
+Moderner Galerie-Feed (Instagram-Style)
+
+Upload von Bildern & Videos per Drag & Drop
+
+Typisierung in „photo“, „video“, „story“
+
+Vorschau & Auto-Komprimierung
+
+Likes & Kommentare pro Beitrag
+
+⚡ Stories
+Nutzer können „Stories“ erstellen
+
+Ablauf nach 24 Stunden automatisch
+
+Darstellung als horizontale Leiste oben (wie bei Instagram/Snapchat)
+
+Flackern/Reload-Effekte vermeiden (smooth transitions)
+
+🎵 Musikwünsche (Spotify)
+Suche via Spotify-API
+
+Gäste können Songs vorschlagen
+
+Playlist wird zentral angezeigt (z. B. als eingebetteter Spotify-Player)
+
+Optional: Spotify OAuth zur Verwaltung durch das Brautpaar
+
+📖 Interaktive Timeline
+Statische Seite mit Meilensteinen der Beziehung
+
+Bilder, Texte und Videos zu jedem Abschnitt
+
+Optional durch das Brautpaar editierbar
+
+🛠 Admin Panel (für Brautpaar)
+Login für Veranstalter
+
+Galerie verwalten (Uploads, Kommentare löschen, Story verwalten)
+
+Musikwünsche freigeben/entfernen
+
+Gäste-Übersicht (wer war online, welche Beiträge wurden gepostet)
+
+Galerie live/privat stellen
+
+Spotify-Integration konfigurieren
+
+Profilbild + Bio + Galerie-Name bearbeiten
+
+🧱 Technisches Setup
+Frontend: React + Vite + TailwindCSS
+
+State Management: Zustand / React Context / Redux Toolkit (optional)
+
+Backend: Supabase (empfohlen) oder Firebase (alternativ)
+
+Datenbankstruktur:
+
+visitors: id, name, device_id, created_at
+
+media: id, visitor_id, url, type, caption, created_at
+
+comments: id, media_id, visitor_id, text, created_at
+
+likes: id, media_id, visitor_id
+
+stories: id, media_id, expires_at
+
+admin: email, password_hash
+
+settings: gallery_name, is_live, spotify_token, etc.
+
+Storage: Supabase/Firebase Storage oder S3-kompatibler Speicher
+
+Authentication:
+
+Kein Login für Besucher notwendig
+
+Nur Admins (Brautpaar) haben geschütztes Login
+
+Besucheraktionen basieren ausschließlich auf ihrer ID
+
+Deployment: Netlify für Frontend, Supabase für Backend/DB
+
+🚀 Ziel-Flow für Besucher
+Erstbesuch:
+
+Pop-up mit Eingabefeld: „Wie dürfen wir dich nennen?“
+
+Speichere Name + generierte ID im LocalStorage
+
+Galerieansicht:
+
+Medien durchsuchen, liken, kommentieren, Stories ansehen
+
+Upload:
+
+Nur eigene Medien sichtbar zum Löschen
+
+Upload von Fotos/Videos
+
+Admin-Perspektive (nur Brautpaar):
+
+Login
+
+Beiträge aller Gäste verwalten
+
+Status der Seite ändern (Live / Nicht verfügbar)
+
+Spotify verwalten
+
+✅ Was du jetzt tun sollst (für die KI)
+Starte ein neues Projekt: weddingpix-2.0
+
+Erstelle die komplette Projektstruktur
+
+Implementiere zuerst:
+
+Besucher-ID-Logik (UUID + Name)
+
+Galerie-Upload mit Ownership (nur eigene Beiträge löschen)
+
+Kommentarsystem mit Rechteprüfung
+
+Danach:
+
+Stories mit Ablauflogik
+
+Admin-Login
+
+Spotify-Suche + Integration
+
+ℹ️ Hinweis
+Alle Aktionen müssen so konzipiert sein, dass Besucher keinen Account anlegen müssen, aber durch ihre Gerät-ID eindeutig erkannt werden. Nur Admins haben Login.

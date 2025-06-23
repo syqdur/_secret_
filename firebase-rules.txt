@@ -1,0 +1,58 @@
+FIREBASE SECURITY RULES CONFIGURATION
+
+To fix the gallery creation and file upload issues, you need to configure Firebase security rules in the Firebase Console:
+
+1. FIRESTORE RULES (Database > Rules):
+```
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow authenticated users to read/write galleries
+    match /galleries/{galleryId} {
+      allow read, write: if request.auth != null;
+      
+      // Allow all operations on subcollections for authenticated users and visitors
+      match /{subcollection}/{document} {
+        allow read, write: if request.auth != null;
+      }
+      
+      // Specific rules for nested subcollections
+      match /{subcollection}/{document}/{nestedCollection}/{nestedDocument} {
+        allow read, write: if request.auth != null;
+      }
+    }
+    
+    // Alternative simpler rule for development (use this if above doesn't work)
+    // match /{document=**} {
+    //   allow read, write: if request.auth != null;
+    // }
+  }
+}
+```
+
+2. STORAGE RULES (Storage > Rules):
+```
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Allow authenticated users to upload to galleries
+    match /galleries/{galleryId}/{allPaths=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
+```
+
+INSTRUCTIONS:
+1. Go to Firebase Console → Your Project
+2. Navigate to Firestore Database → Rules tab
+3. Replace the existing rules with the Firestore rules above
+4. Click "Publish"
+5. Navigate to Storage → Rules tab  
+6. Replace the existing rules with the Storage rules above
+7. Click "Publish"
+
+This will allow:
+- Authenticated users to create and manage galleries
+- Gallery visitors to upload media and interact with content
+- Proper gallery isolation while maintaining security
